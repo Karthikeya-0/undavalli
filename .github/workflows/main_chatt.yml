@@ -61,4 +61,4 @@ jobs:
           app-name: 'chatt'
           slot-name: 'Production'
           package: .
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_9E78AF7B13C04C23BD06A47E975BA8BE }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_61AF56BB44C3401CA46A728048D44630 }}
