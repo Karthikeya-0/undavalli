@@ -228,6 +228,6 @@ I can help you implement this too.
 ---
 
 # 👨‍💻 Author
-**Karthikeya**  
+**KARTHIKEYA.UNDAVALLI**  
 🔗 GitHub: https://github.com/Karthikeya-0  
 💼 Project: Fraud URL Detection System
