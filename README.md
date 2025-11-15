@@ -51,7 +51,7 @@ The system is built to scale, easy to manage, and ready for production.
 
 ---
 
-# 🚀 Features
+# Features
 
 ### 🔍 **AI Fraud Detection**
 Every URL submitted is analyzed using a trained machine learning model that identifies suspicious patterns.
@@ -214,9 +214,9 @@ I can help you implement this too.
 
 ---
 
-# 🖼️ Screenshots (Add Yours Here)
+# 🖼️ Screenshots 
 
-### 📌 Dashboard  
+###  Dashboard  
 *(insert screenshot)*
 
 ### 📌 URL Check  
