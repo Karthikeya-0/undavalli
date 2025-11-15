@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Fraud URL Manager</title>
+  <style>
+    body{font-family:Arial, sans-serif;background:#f5f7fa;padding:20px}
+    .grid{display:flex;gap:20px;flex-wrap:wrap}
+    .card{background:#fff;padding:16px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.06);width:420px}
+    input,textarea{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;margin:8px 0}
+    button{background:#0078ff;color:#fff;border:none;padding:10px 12px;border-radius:6px;cursor:pointer}
+    button.danger{background:#c62828}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{padding:8px;border:1px solid #eee;font-size:13px;text-align:left}
+    .muted{color:#666;font-size:13px}
+  </style>
+</head>
+<body>
+  <h1>Fraud URL Manager</h1>
+  <div class="grid">
+    <div class="card">
+      <h3>Add Single URL</h3>
+      <input id="addInput" placeholder="example.com or https://example.com" />
+      <button onclick="addSingle()">Add (ML analyze)</button>
+      <div id="addMsg" class="muted"></div>
+
+      <h4 style="margin-top:12px">Bulk Add (paste or CSV)</h4>
+      <textarea id="bulkArea" rows="6" placeholder="one URL per line or comma separated"></textarea>
+      <input id="fileInput" type="file" accept=".csv,.txt" />
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button onclick="bulkAdd()">Bulk Add</button>
+        <button onclick="clearBulk()">Clear</button>
+      </div>
+      <div id="bulkMsg" class="muted"></div>
+    </div>
+
+    <div class="card">
+      <h3>Check URL (no insert)</h3>
+      <input id="checkInput" placeholder="example.com or https://example.com" />
+      <button onclick="checkSingle()">Check</button>
+      <div id="checkMsg" class="muted"></div>
+
+      <h3 style="margin-top:16px">Recent URLs</h3>
+      <div class="muted">Click Delete to remove a wrong/test entry</div>
+      <table id="urlsTable">
+        <thead><tr><th>Link</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+<script>
+  const domainRegex = /^(https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/[^\s]*)?$/;
+
+  function clientValidate(s){ if(!s) return false; return domainRegex.test(s.trim()); }
+
+  async function addSingle(){
+    const input = document.getElementById('addInput');
+    const msg = document.getElementById('addMsg');
+    const val = input.value.trim();
+    if(!clientValidate(val)){ msg.textContent = 'Invalid format. Use example.com or https://example.com'; return; }
+    msg.textContent = 'Analyzing and inserting...';
+    try{
+      const res = await fetch('/add',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ link: val }) });
+      const data = await res.json();
+      if(!res.ok || !data.success){ msg.textContent = data.error || 'Failed'; return; }
+      msg.textContent = data.message || 'Inserted';
+      input.value = ''; loadUrls();
+    }catch(e){ msg.textContent = 'Error: ' + e.message; }
+  }
+
+  // client-side read CSV/text file and paste content into textarea then send same flow
+  function clearBulk(){ document.getElementById('bulkArea').value=''; document.getElementById('fileInput').value=''; document.getElementById('bulkMsg').textContent=''; }
+  document.getElementById('fileInput').addEventListener('change', function(e){
+    const f = e.target.files[0]; if(!f) return;
+    const reader = new FileReader();
+    reader.onload = () => { document.getElementById('bulkArea').value = reader.result; };
+    reader.readAsText(f);
+  });
+
+  async function bulkAdd(){
+    const area = document.getElementById('bulkArea').value.trim();
+    const msg = document.getElementById('bulkMsg');
+    if(!area){ msg.textContent = 'Please paste URLs or upload CSV/text file'; return; }
+
+    // prepare list on client to show basic invalid ones quickly
+    const items = area.split(/\r?\n|,/).map(s => s.trim()).filter(Boolean);
+    if(!items.length){ msg.textContent = 'No valid lines detected'; return; }
+
+    msg.textContent = 'Preparing...';
+    // send as text; server will validate and call ML
+    try{
+      const res = await fetch('/bulk-add', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ links: items }) });
+      const data = await res.json();
+      if(!res.ok || !data.success){ msg.textContent = data.error || 'Bulk add failed'; return; }
+      msg.textContent = `Inserted: ${data.insertedCount}, Invalid: ${data.invalid.length}, Skipped existing: ${data.skippedExisting || 0}`;
+      clearBulk(); loadUrls();
+    }catch(e){ msg.textContent = 'Error: ' + e.message; }
+  }
+
+  async function checkSingle(){
+    const input = document.getElementById('checkInput'); const msg = document.getElementById('checkMsg'); const val = input.value.trim();
+    if(!clientValidate(val)){ msg.textContent = 'Invalid format.'; return; }
+    msg.textContent = 'Checking...';
+    try{
+      const res = await fetch('/check',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ link: val }) });
+      const data = await res.json();
+      if(!res.ok || !data.success){ msg.textContent = data.error || 'Check failed'; return; }
+      if(data.found === false) msg.textContent = 'Not found in database';
+      else msg.textContent = data.data.isFraud ? 'FRAUD' : 'SAFE';
+    }catch(e){ msg.textContent = 'Error: ' + e.message; }
+  }
+
+  async function loadUrls(){
+    try {
+      const res = await fetch('/urls');
+      const rows = await res.json();
+      const tbody = document.querySelector('#urlsTable tbody');
+      tbody.innerHTML = rows.map(r => `<tr>
+        <td>${r.link}</td>
+        <td>${r.isFraud ? '<b style="color:red">FRAUD</b>' : '<b style="color:green">SAFE</b>'}</td>
+        <td><button onclick="deleteUrl('${r._id}')" class="danger">Delete</button></td>
+      </tr>`).join('');
+    } catch(e){
+      console.error(e);
+    }
+  }
+
+  async function deleteUrl(id){
+    if(!confirm('Delete this URL?')) return;
+    try {
+      const res = await fetch('/delete/' + id, { method:'DELETE' });
+      const data = await res.json();
+      if(!res.ok || !data.success) return alert(data.error || 'Delete failed');
+      loadUrls();
+    } catch(e){ alert('Error: ' + e.message); }
+  }
+
+  loadUrls();
+</script>
+</body>
+</html>
