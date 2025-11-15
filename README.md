@@ -212,21 +212,6 @@ Training steps:
 
 I can help you implement this too.
 
----
-
-# 🖼️ Screenshots 
-
-###  Dashboard  
-*(insert screenshot)*
-
-### 📌 URL Check  
-*(insert screenshot)*
-
-### 📌 Bulk Upload  
-*(insert screenshot)*
-
----
-
 # 👨‍💻 Author
 **KARTHIKEYA.UNDAVALLI**  
 🔗 GitHub: https://github.com/Karthikeya-0  
