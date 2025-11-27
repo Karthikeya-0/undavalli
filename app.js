@@ -2,7 +2,7 @@
 // Node backend with bulk import (calls Python ML), strict validation, and delete
 const express = require("express");
 const path = require("path");
-const mongoose = require("mongoose")
+const mongoose = require("mongoose");
 const axios = require("axios");
 
 const app = express();
